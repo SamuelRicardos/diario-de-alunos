@@ -1,6 +1,16 @@
 import { useState, useEffect } from "react"
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import axios from "axios";
 import "./styles.css"
+
+type Aluno = {
+  _id: string
+  bimestre: string
+  matricula: string;
+  nome: string;
+  curso: string;
+}
 
 function App() {
 
@@ -12,23 +22,51 @@ function App() {
   })
 
   const [errorNome, setErrorNome] = useState("");
+  const [alunos, setAlunos] = useState<Aluno[]>([])
+  const [isLoading, setIsLoading] = useState(false)
 
-  function salvarAluno(event: React.FormEvent<HTMLFormElement>) {
+  async function salvarAluno(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (formData.nome === "") {
       setErrorNome("Campo é obrigatório");
     } else {
       setErrorNome("")
-      console.log(formData)
+
+      try {
+        await axios.post("https://api-aluno.vercel.app/aluno", {
+          nome: formData.nome,
+          matricula: formData.matricula,
+          curso: formData.curso,
+          bimestre: formData.bimestre,
+        });
+        buscarAlunos();
+        toast("Aluno cadastrado com sucesso")
+
+      } catch (error) {
+        toast("Erro ao cadastrar aluno: " + error)
+      }
+      
+      setFormData({ nome: "", matricula: "", curso: "", bimestre: ""})
     }
 
   }
 
   async function buscarAlunos() {
+    setIsLoading(true)
     const response = await axios.get("https://api-aluno.vercel.app/aluno");
+    setAlunos(response.data)
+    setIsLoading(false)
+  }
 
-    console.log(response.data)
+  async function removerAluno(id: string) {
+    try {
+      await axios.delete(`https://api-aluno.vercel.app/aluno/${id}`);
+      buscarAlunos();
+      toast("Aluno removido com sucesso")
+    } catch (error) {
+      toast("Erro ao remover aluno: " + error);
+    }
   }
 
   useEffect(() => {
@@ -55,6 +93,7 @@ function App() {
 
             <div className="container_input">
               <select value={formData.curso} onChange={(event) => setFormData({ ...formData, curso: event.target.value })}>
+                <option selected>Selecione um curso</option>
                 <option value="Back-end">Back-end</option>
                 <option value="Front-end">Front-end</option>
               </select>
@@ -72,24 +111,38 @@ function App() {
 
         <div className="container_table">
           <h2>Alunos Cadastrados</h2>
-          <table border={1} className="table_alunos">
-            <tr>
-              <th className="flex-0">Ordem</th>
-              <th className="flex-2">Nome</th>
-              <th className="flex-1">Matrícula</th>
-              <th className="flex-1">Curso</th>
-              <th className="flex-1">Bimestre</th>
-            </tr>
-            <tr>
-              <td className="flex-0">1</td>
-              <td className="flex-2">Junin</td>
-              <td className="flex-1">Brasil</td>
-              <td className="flex-1">ADS</td>
-              <td className="flex-1">2</td>
-            </tr>
-          </table>
-        </div>
+          {
+            isLoading ? <p>Carregando...</p> :
+              <table border={1} className="table_alunos">
+                <tr>
+                  <th className="flex-0">Ordem</th>
+                  <th className="flex-2">Nome</th>
+                  <th className="flex-1">Matrícula</th>
+                  <th className="flex-1">Curso</th>
+                  <th className="flex-1">Bimestre</th>
+                  <th className="flex-1">Ações</th>
+                </tr>
 
+                {
+                  alunos.map((aluno, index) => {
+                    return (
+                      <tr key={aluno._id}>
+                        <td className="flex-0">{index + 1}</td>
+                        <td className="flex-2">{aluno.nome}</td>
+                        <td className="flex-1">{aluno.matricula}</td>
+                        <td className="flex-1">{aluno.curso}</td>
+                        <td className="flex-1">{aluno.bimestre}</td>
+                        <td className="flex-1">
+                          <button onClick={() => removerAluno(aluno._id)}>excluir</button>
+                          <button>editar</button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </table>
+          }
+        </div>
+        <ToastContainer />
       </div>
     </>
   )
