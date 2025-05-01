@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react"
+import { LiaEdit } from "react-icons/lia";
+import { MdDelete } from "react-icons/md";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import axios from "axios";
@@ -21,6 +23,8 @@ function App() {
     bimestre: "",
   })
 
+  const [idParaEdicao, setIdParaEdicao] = useState("")
+
   const [errorNome, setErrorNome] = useState("");
   const [alunos, setAlunos] = useState<Aluno[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -33,21 +37,38 @@ function App() {
     } else {
       setErrorNome("")
 
-      try {
-        await axios.post("https://api-aluno.vercel.app/aluno", {
-          nome: formData.nome,
-          matricula: formData.matricula,
-          curso: formData.curso,
-          bimestre: formData.bimestre,
-        });
-        buscarAlunos();
-        toast("Aluno cadastrado com sucesso")
+      if (idParaEdicao) {
+        try {
+          await axios.put(`https://api-aluno.vercel.app/aluno/${idParaEdicao}`, {
+            nome: formData.nome,
+            matricula: formData.matricula,
+            curso: formData.curso,
+            bimestre: formData.bimestre,
+          });
+          buscarAlunos();
+          toast("Aluno editado com sucesso")
 
-      } catch (error) {
-        toast("Erro ao cadastrar aluno: " + error)
+        } catch (error) {
+          toast("Erro ao editar aluno: " + error)
+        }
+      } else {
+        try {
+          await axios.post("https://api-aluno.vercel.app/aluno", {
+            nome: formData.nome,
+            matricula: formData.matricula,
+            curso: formData.curso,
+            bimestre: formData.bimestre,
+          });
+          buscarAlunos();
+          toast("Aluno cadastrado com sucesso");
+
+          setIdParaEdicao("");
+        } catch (error) {
+          toast("Erro ao cadastrar aluno: " + error)
+        }
       }
-      
-      setFormData({ nome: "", matricula: "", curso: "", bimestre: ""})
+
+      setFormData({ nome: "", matricula: "", curso: "", bimestre: "" })
     }
 
   }
@@ -67,6 +88,18 @@ function App() {
     } catch (error) {
       toast("Erro ao remover aluno: " + error);
     }
+  }
+
+  function preencherEstado(aluno: Aluno) {
+
+    setFormData({
+      nome: aluno.nome,
+      matricula: aluno.matricula,
+      bimestre: aluno.bimestre,
+      curso: aluno.curso
+    });
+
+    setIdParaEdicao(aluno._id);
   }
 
   useEffect(() => {
@@ -133,8 +166,8 @@ function App() {
                         <td className="flex-1">{aluno.curso}</td>
                         <td className="flex-1">{aluno.bimestre}</td>
                         <td className="flex-1">
-                          <button onClick={() => removerAluno(aluno._id)}>excluir</button>
-                          <button>editar</button>
+                          <MdDelete color="#F90000"size={25} onClick={() => removerAluno(aluno._id)}>excluir</MdDelete>
+                          <LiaEdit color="#0FBA3F" size={25} onClick={() => preencherEstado(aluno)}>editar</LiaEdit>
                         </td>
                       </tr>
                     );
